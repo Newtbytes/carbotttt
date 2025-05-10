@@ -1,0 +1,8 @@
+[package]
+name = "x86"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+lorax = { path = "../../lorax" }
+contracts = "0.6.6"

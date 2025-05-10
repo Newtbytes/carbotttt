@@ -6,7 +6,7 @@ use crate::parser::ast;
 rewrite_rule! {
     ast::Expr => asm::Operand {
         ast::Expr::Constant(value) => asm::Operand::Imm(*value),
-        ast::Expr::Unary(unary_op, expr) => todo!("Unary expr lowering"),
+        ast::Expr::Unary(unary_op, expr) => todo!("Unary expr lowering")
     }
 }
 

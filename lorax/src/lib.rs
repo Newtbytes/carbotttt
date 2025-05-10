@@ -1,3 +1,6 @@
-pub mod rewrite;
+mod link;
+mod rewrite;
+mod shape;
 
-pub use rewrite::{Rewritable, rewrite};
+pub use rewrite::{Cursor, RewriteRule, RewriteRuleSet};
+pub use shape::{Block, Constant, OpResult, Operation, Region, Value, Var};

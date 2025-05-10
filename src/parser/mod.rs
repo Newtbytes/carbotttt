@@ -1,11 +1,13 @@
 pub mod ast;
 pub mod lexer;
+pub mod lower;
 
 use std::iter::{self};
 
 use ast::*;
 
 pub use lexer::tokenize;
+pub use lower::lower_stmt;
 
 type ParseResult<T> = Result<T, String>;
 
