@@ -1,16 +1,20 @@
 use std::{fmt::Display, sync::atomic};
 
+type Ptr = usize;
+
 #[derive(Debug, Clone, Copy)]
 pub struct Value {
     id: usize,
+    def: Option<Ptr>,
 }
 
 impl Value {
-    pub fn new() -> Self {
+    pub fn new(ptr: Option<Ptr>) -> Self {
         static TMP_ID_COUNTER: atomic::AtomicUsize = atomic::AtomicUsize::new(0);
 
         Self {
             id: TMP_ID_COUNTER.fetch_add(1, atomic::Ordering::Relaxed),
+            def: ptr,
         }
     }
 }
@@ -88,14 +92,14 @@ macro_rules! def_op {
                 name: stringify!($dl . $name),
                 operands: Vec::new(),
                 blocks: Vec::new(),
-                result: Some(Value::new()),
+                result: Some(Value::new(None)),
                 attr: Some(value),
             }
         }
     };
 
     // Result handling
-    (@ret) => { Some(Value::new()) };
+    (@ret) => { Some(Value::new(None)) };
     (@ret None) => { None };
     (@ret Value) => { Some(Value::new()) };
     (@ret $ret:ident) => { Some(($ret).into()) };
@@ -178,9 +182,16 @@ impl Block {
         self.body.iter_mut()
     }
 
-    pub fn push(&mut self, op: Operation) -> &Operation {
+    pub fn push(&mut self, mut op: Operation) -> Ptr {
+        let ptr = self.len();
+
+        if let Some(result) = &mut op.result {
+            result.def = Some(ptr);
+        }
+
         self.body.push(op);
-        self.body.last().expect("last op should always exist")
+
+        ptr
     }
 
     pub fn insert(&mut self, idx: usize, op: Operation) {

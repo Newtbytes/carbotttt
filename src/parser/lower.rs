@@ -19,7 +19,8 @@ fn lower_expr(block: &mut Block, expr: &ast::Expr) -> Value {
         ast::Expr::Constant(val) => builtin::constant(*val),
     };
 
-    block.push(op).get_result()
+    let ptr = block.push(op);
+    block.get(ptr).get_result()
 }
 
 pub fn lower_stmt(block: &mut Block, stmt: &ast::Stmt) {

@@ -17,6 +17,11 @@ impl<'a> RewritingCtx<'a> {
         self.op_idx = 0;
     }
 
+    // /// Allocate an operation in the pool, filling in the op's result with a def
+    // pub fn alloc_op(&mut self, op: Operation) {
+    //     self.
+    // }
+
     fn advance(&mut self) {
         if self.op_idx < self.block.len() {
             self.op_idx += 1;
@@ -35,6 +40,14 @@ impl<'a> RewritingCtx<'a> {
             .body
             .get_mut(self.op_idx)
             .expect("op_idx should always point to an existing operation")
+    }
+
+    pub fn deref(&self, ptr: usize) -> &Operation {
+        self.block.get(ptr)
+    }
+
+    pub fn deref_mut(&mut self, ptr: usize) -> &mut Operation {
+        self.block.get_mut(ptr)
     }
 
     pub fn operands(&self) -> &[Value] {
