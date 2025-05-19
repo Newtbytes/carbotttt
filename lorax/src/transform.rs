@@ -24,6 +24,13 @@ impl<'a> RewritingCtx<'a> {
     /// Allocate an operation in the pool, filling in the op's result with a def
     pub fn alloc_op(&mut self, op: Operation) -> &Operation {
         let ptr = self.pool.alloc(op);
+
+        if let Some(val) = &mut self.deref_mut(ptr).result {
+            if let None = val.def {
+                val.def = Some(ptr);
+            }
+        }
+
         self.deref(ptr)
     }
 

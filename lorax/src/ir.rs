@@ -5,7 +5,7 @@ use crate::pool::{Pool, Ptr};
 #[derive(Debug, Clone, Copy)]
 pub struct Value {
     id: usize,
-    def: Option<Ptr>,
+    pub(crate) def: Option<Ptr>,
 }
 
 impl Value {
@@ -52,7 +52,11 @@ impl Operation {
             .expect("this should be called on an op with at least one result")
     }
 
-    pub fn walk_blocks(&mut self) -> impl Iterator<Item = &mut Block> {
+    pub fn walk_blocks(&self) -> impl Iterator<Item = &Block> {
+        self.blocks.iter()
+    }
+
+    pub fn walk_blocks_mut(&mut self) -> impl Iterator<Item = &mut Block> {
         self.blocks.iter_mut()
     }
 }
@@ -189,14 +193,37 @@ impl Block {
     pub fn len(&self) -> usize {
         self.pool.len()
     }
+
+    /// Traverse value definitions in each operation's operands
+    /// to create a linear sequence of operations.
+    pub fn linearize(&self) -> Vec<Ptr> {
+        let mut linearized = Vec::new();
+
+        for (id, op) in self.walk_ops().enumerate() {
+            for operand in &op.operands {
+                if let Some(def) = operand.def {
+                    if linearized.iter().any(|x| *x == def) {
+                        continue;
+                    }
+                    linearized.push(def);
+                }
+            }
+
+            linearized.push(id.into());
+        }
+
+        linearized
+    }
 }
 
 impl Display for Block {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         writeln!(f, ".bb{}:", self.id)?;
-        for op in self.walk_ops() {
-            writeln!(f, "    {}", op)?;
+
+        for ptr in self.linearize() {
+            writeln!(f, "    {}", self.get(ptr))?;
         }
+
         Ok(())
     }
 }
@@ -206,7 +233,7 @@ pub fn walk_blocks<'a>(block: &'a mut Block) -> Box<dyn Iterator<Item = &'a mut 
     let mut blocks = Vec::new();
 
     for op in block.walk_ops_mut() {
-        blocks.extend(op.walk_blocks());
+        blocks.extend(op.walk_blocks_mut());
     }
 
     Box::new(blocks.into_iter())
