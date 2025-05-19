@@ -53,11 +53,13 @@ impl<'a> RewritingCtx<'a> {
         &self.get().result
     }
 
-    pub fn insert_behind(&mut self, op: Operation) {
+    pub fn insert_behind(&mut self, op: Operation) -> Option<Value> {
         self.block.insert(self.op_idx, op);
 
         // adjust index so we continue to point to the correct op
         self.advance();
+
+        self.prev().map(|op| op.result).flatten()
     }
 
     pub fn insert_ahead(&mut self, op: Operation) {
