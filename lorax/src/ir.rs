@@ -1,6 +1,6 @@
 use std::{fmt::Display, sync::atomic};
 
-type Ptr = usize;
+use crate::pool::{Pool, Ptr};
 
 #[derive(Debug, Clone, Copy)]
 pub struct Value {
@@ -150,7 +150,7 @@ impl Display for Operation {
 #[derive(Debug)]
 pub struct Block {
     pub(crate) id: usize,
-    pub body: Vec<Operation>,
+    pub pool: Pool<Operation>,
 }
 
 impl Block {
@@ -162,51 +162,39 @@ impl Block {
     pub fn new() -> Self {
         Self {
             id: Self::unique_id(),
-            body: Vec::new(),
+            pool: Pool::new(),
         }
     }
 
-    pub fn get(&self, idx: usize) -> &Operation {
-        self.body
-            .get(idx)
-            .expect("idx should always point to an existing operation")
+    pub fn get(&self, ptr: Ptr) -> &Operation {
+        self.pool.deref(ptr)
     }
 
-    pub fn get_mut(&mut self, idx: usize) -> &mut Operation {
-        self.body
-            .get_mut(idx)
-            .expect("idx should always point to an existing operation")
+    pub fn get_mut(&mut self, ptr: Ptr) -> &mut Operation {
+        self.pool.deref_mut(ptr)
     }
 
-    pub fn walk_ops(&mut self) -> impl Iterator<Item = &mut Operation> {
-        self.body.iter_mut()
+    pub fn walk_ops(&self) -> impl Iterator<Item = &Operation> {
+        self.pool.iter()
     }
 
-    pub fn push(&mut self, mut op: Operation) -> Ptr {
-        let ptr = self.len();
-
-        if let Some(result) = &mut op.result {
-            result.def = Some(ptr);
-        }
-
-        self.body.push(op);
-
-        ptr
+    pub fn walk_ops_mut(&mut self) -> impl Iterator<Item = &mut Operation> {
+        self.pool.iter_mut()
     }
 
-    pub fn insert(&mut self, idx: usize, op: Operation) {
-        self.body.insert(idx, op);
+    pub fn push(&mut self, op: Operation) -> Ptr {
+        self.pool.alloc(op)
     }
 
     pub fn len(&self) -> usize {
-        self.body.len()
+        self.pool.len()
     }
 }
 
 impl Display for Block {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         writeln!(f, ".bb{}:", self.id)?;
-        for op in &self.body {
+        for op in self.walk_ops() {
             writeln!(f, "    {}", op)?;
         }
         Ok(())
@@ -217,7 +205,7 @@ impl Display for Block {
 pub fn walk_blocks<'a>(block: &'a mut Block) -> Box<dyn Iterator<Item = &'a mut Block> + 'a> {
     let mut blocks = Vec::new();
 
-    for op in block.walk_ops() {
+    for op in block.walk_ops_mut() {
         blocks.extend(op.walk_blocks());
     }
 

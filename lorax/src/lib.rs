@@ -7,4 +7,4 @@ mod transform;
 pub use ir::{Block, OpResult, Operation, Value, walk_blocks};
 pub use pool::{Pool, Ptr};
 pub use rewrite::{RewriteRule, RewriteRuleSet};
-pub use transform::{RewritingCtx, rewrite_blocks};
+pub use transform::{RewritingCtx, rewrite_ops};
