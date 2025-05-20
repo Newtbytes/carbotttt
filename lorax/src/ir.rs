@@ -94,13 +94,13 @@ macro_rules! def_op {
     // Block-only operation (no operands, no result)
     ($dl:ident . $name:ident ($field:ident : Block)) => {
         pub fn $name($field: Block) -> Operation {
-            use lorax::attr::AttributeMap;
+            use ::lorax::attr::AttributeMap;
             Operation {
                 name: stringify!($dl . $name),
                 operands: Vec::new(),
                 blocks: vec![$field],
                 result: None,
-              
+
                 attributes: AttributeMap::new(),
 
                 behind: None,
@@ -112,16 +112,15 @@ macro_rules! def_op {
     // Operation with operands, optional result
     ($dl:ident . $name:ident ( $($field:ident : $ty:ty),* $(,)? ) $(-> $ret:ident)? ) => {
         pub fn $name($($field: $ty),*) -> Operation {
-            use lorax::attr::AttributeMap;
+            use ::lorax::attr::AttributeMap;
 
             Operation {
                 name: stringify!($dl . $name),
                 operands: vec![$($field.into()),*],
                 blocks: Vec::new(),
                 result: def_op!(@ret $( $ret )?),
-              
-                attributes: AttributeMap::new()
 
+                attributes: AttributeMap::new(),
 
                 behind: None,
                 ahead: None,
@@ -132,7 +131,7 @@ macro_rules! def_op {
     // Operation with one attribute
     ($dl:ident . $name:ident (  ) { value: $ty:ty }) => {
         pub fn $name(value: $ty) -> Operation {
-            use crate::attr::{AttributeMap, Attribute};
+            use ::lorax::attr::{AttributeMap, Attribute};
 
             let mut attributes = AttributeMap::new();
             attributes.insert("value".to_owned(), Attribute::Int(value));
@@ -142,7 +141,7 @@ macro_rules! def_op {
                 operands: Vec::new(),
                 blocks: Vec::new(),
                 result: Some(Value::new(None)),
-              
+
                 attributes: attributes,
 
                 behind: None,

@@ -1,5 +1,4 @@
 pub mod attr;
-pub mod builtin;
 mod ir;
 mod link;
 mod pool;

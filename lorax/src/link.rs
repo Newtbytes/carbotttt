@@ -81,12 +81,19 @@ pub trait LinkedList<T: LinkedNode> {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::def_op;
-    use crate::{Block, Operation, Value};
+    use crate::{Block, Operation, Value, attr::AttributeMap};
     use proptest::prelude::*;
 
-    def_op! {
-        tst.dummy(src: Value, dst: Value) -> dst
+    fn dummy(src: Value, dst: Value) -> Operation {
+        Operation {
+            name: "test.dummy",
+            operands: vec![src],
+            blocks: Vec::new(),
+            result: Some(dst),
+            attributes: AttributeMap::new(),
+            behind: None,
+            ahead: None,
+        }
     }
 
     fn val() -> Value {
@@ -173,7 +180,7 @@ mod test {
             let mut bl = Block::new();
 
             for _ in 0..count {
-                let ptr = bl.push(dummy(val(), val()));
+                let _ = bl.push(dummy(val(), val()));
             }
 
             prop_assert_eq!(bl.len(), count);
