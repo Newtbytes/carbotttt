@@ -51,6 +51,10 @@ impl<'a> RewritingCtx<'a> {
         self.block.pool.deref_mut(ptr)
     }
 
+    pub fn result_of(&mut self, ptr: Ptr) -> Value {
+        self.deref(ptr).get_result()
+    }
+
     pub fn insert_behind(&mut self, op: Operation) -> Ptr {
         self.block.insert_behind(self.op, op)
     }
@@ -61,7 +65,6 @@ impl<'a> RewritingCtx<'a> {
     {
         &self.get().operands.as_slice()
     }
-
 
     pub fn name(&self) -> &'static str {
         self.get().name

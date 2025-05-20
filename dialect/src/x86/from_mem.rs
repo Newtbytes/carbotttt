@@ -13,15 +13,20 @@ impl<'block> RewriteRule<RewritingCtx<'block>> for LowerMem {
         match (ctx.name(), ctx.operands()) {
             ("mem.alloca", &[size]) => {
                 let rsp = ctx.insert_behind(rsp());
-                ctx.replace(subq(size, rsp.unwrap()));
+                let rsp = ctx.result_of(rsp);
+                ctx.replace(subq(size, rsp));
             }
 
             // function epilogue
             ("x86.ret", _) => {
                 let rbp = ctx.insert_behind(rbp());
                 let rsp = ctx.insert_behind(rsp());
-                ctx.insert_behind(mov(rbp.unwrap(), rsp.unwrap()));
-                ctx.insert_behind(popq(rbp.unwrap()));
+
+                let rbp = ctx.result_of(rbp);
+                let rsp = ctx.result_of(rsp);
+
+                ctx.insert_behind(mov(rbp, rsp));
+                ctx.insert_behind(popq(rbp));
             }
             _ => (),
         }

@@ -8,9 +8,9 @@ impl<'block> RewriteRule<RewritingCtx<'block>> for LowerFunc {
         match (ctx.name(), ctx.operands()) {
             ("func.ret", &[val]) => {
                 let v0 = ctx.insert_behind(ax());
-                let v0 = ctx.deref(v0).get_result();
+                let v0 = ctx.result_of(v0);
                 let _ = ctx.insert_behind(mov(val, v0));
-              
+
                 ctx.replace(ret());
             }
             _ => (),
