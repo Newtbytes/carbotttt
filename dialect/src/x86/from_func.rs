@@ -7,8 +7,9 @@ impl<'block> RewriteRule<RewritingCtx<'block>> for LowerFunc {
     fn apply(&self, ctx: &mut RewritingCtx<'block>) {
         match (ctx.name(), ctx.operands()) {
             ("func.ret", &[val]) => {
-                let v0 = ctx.alloc_op(ax()).get_result();
-                ctx.alloc_op(mov(val, v0));
+                let v0 = ctx.insert_behind(ax());
+                let v0 = ctx.deref(v0).get_result();
+                let _ = ctx.insert_behind(mov(val, v0));
 
                 ctx.replace(ret());
             }

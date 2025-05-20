@@ -1,29 +1,24 @@
 use crate::{
-    Block, Operation, RewriteRule, RewriteRuleSet, Value,
-    pool::{Pool, Ptr},
-    walk_blocks,
+    Block, Operation, RewriteRule, RewriteRuleSet, Value, link::LinkedList, pool::Ptr, walk_blocks,
 };
 
 pub struct RewritingCtx<'a> {
-    pool: &'a mut Pool<Operation>,
+    block: &'a mut Block,
     op: Ptr,
 }
 
 impl<'a> RewritingCtx<'a> {
-    pub fn new(pool: &'a mut Pool<Operation>, op: Ptr) -> Self {
-        Self { pool, op }
+    pub fn new(block: &'a mut Block, op: Ptr) -> Self {
+        Self { block, op }
     }
 
-    pub fn from_block(block: &'a mut Block) -> Self {
-        Self {
-            pool: &mut block.pool,
-            op: Ptr::new(0),
-        }
+    pub fn from_start(block: &'a mut Block) -> Self {
+        Self::new(block, Ptr::new(0))
     }
 
     /// Allocate an operation in the pool, filling in the op's result with a def
     pub fn alloc_op(&mut self, op: Operation) -> &Operation {
-        let ptr = self.pool.alloc(op);
+        let ptr = self.block.pool.alloc(op);
 
         if let Some(val) = &mut self.deref_mut(ptr).result {
             if let None = val.def {
@@ -35,25 +30,29 @@ impl<'a> RewritingCtx<'a> {
     }
 
     fn advance(&mut self) {
-        if self.op < self.pool.len().into() {
+        if self.op < self.block.pool.len().into() {
             self.op.idx += 1;
         }
     }
 
     pub fn get(&self) -> &Operation {
-        self.pool.deref(self.op)
+        self.block.pool.deref(self.op)
     }
 
     pub fn get_mut(&mut self) -> &mut Operation {
-        self.pool.deref_mut(self.op)
+        self.block.pool.deref_mut(self.op)
     }
 
     pub fn deref(&self, ptr: Ptr) -> &Operation {
-        self.pool.deref(ptr)
+        self.block.pool.deref(ptr)
     }
 
     pub fn deref_mut(&mut self, ptr: Ptr) -> &mut Operation {
-        self.pool.deref_mut(ptr)
+        self.block.pool.deref_mut(ptr)
+    }
+
+    pub fn insert_behind(&mut self, op: Operation) -> Ptr {
+        self.block.insert_behind(self.op, op)
     }
 
     pub fn operands<'b>(&'a self) -> &'b [Value]
@@ -76,7 +75,7 @@ impl<'a> RewritingCtx<'a> {
     }
 
     pub fn done(&self) -> bool {
-        self.op.idx >= self.pool.len()
+        self.op.idx >= self.block.pool.len()
     }
 
     pub fn release(self) {}
@@ -88,7 +87,7 @@ where
     'a: 'b,
 {
     for bl in walk_blocks(block) {
-        let mut ctx = RewritingCtx::from_block(bl);
+        let mut ctx = RewritingCtx::from_start(bl);
 
         while !ctx.done() {
             pass.apply(&mut ctx);
