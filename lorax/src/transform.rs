@@ -75,7 +75,7 @@ impl<'a> RewritingCtx<'a> {
     }
 
     pub fn replace(&mut self, new: Operation) {
-        *(self.get_mut()) = new;
+        self.block.replace(self.op, new);
     }
 
     pub fn done(&self) -> bool {

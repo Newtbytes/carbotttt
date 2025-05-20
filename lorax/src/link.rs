@@ -31,21 +31,39 @@ pub trait LinkedList<T: LinkedNode> {
     fn pool(&self) -> &Pool<T>;
     fn pool_mut(&mut self) -> &mut Pool<T>;
 
+    fn replace(&mut self, old: Ptr, new: T) {
+        let pool = self.pool_mut();
+
+        // use the new node's links if they're available
+        let behind = new.behind();
+        let behind = behind.or(pool.deref(old).behind());
+
+        let ahead = new.ahead();
+        let ahead = ahead.or(pool.deref(old).ahead());
+
+        *pool.deref_mut(old) = new;
+
+        *pool.deref_mut(old).behind_mut() = behind;
+        *pool.deref_mut(old).ahead_mut() = ahead;
+    }
+
     fn insert_behind(&mut self, root: Ptr, inserted: T) -> Ptr {
         let pool = self.pool_mut();
         let inserted = pool.alloc(inserted);
 
-        if let Some(behind) = *pool.deref_mut(root).behind_mut() {
-            // link up inserted node between the old behind node and the root
-            *pool.deref_mut(inserted).behind_mut() = Some(behind);
-            *pool.deref_mut(inserted).ahead_mut() = Some(root);
+        let behind = *pool.deref_mut(root).behind_mut();
 
-            // the old behind node now points to inserted
+        // link up inserted node between the old behind node and the root
+        *pool.deref_mut(inserted).behind_mut() = behind;
+        *pool.deref_mut(inserted).ahead_mut() = Some(root);
+
+        if let Some(behind) = behind {
+            // point the inserted node ahead of the old behind node
             *pool.deref_mut(behind).ahead_mut() = Some(inserted);
-
-            // point the root's behind ptr to the inserted node
-            *pool.deref_mut(root).behind_mut() = Some(inserted);
         }
+
+        // point the root's behind ptr to the inserted node
+        *pool.deref_mut(root).behind_mut() = Some(inserted);
 
         inserted
     }

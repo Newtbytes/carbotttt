@@ -1,7 +1,5 @@
 use lorax::{RewriteRule, RewritingCtx};
 
-use crate::mem::alloca;
-
 use super::{
     ops::*,
     state::{rbp, rsp},
