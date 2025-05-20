@@ -1,5 +1,3 @@
-use std::ops::Deref;
-
 #[derive(Debug, Copy, Clone, PartialEq, PartialOrd)]
 pub struct Ptr {
     pub(crate) idx: usize,
@@ -15,6 +13,13 @@ impl From<usize> for Ptr {
     fn from(idx: usize) -> Self {
         Self { idx }
     }
+}
+
+pub trait LinkedNode {
+    fn ahead(&self) -> Option<Ptr>;
+    fn behind(&self) -> Option<Ptr>;
+    fn ahead_mut(&mut self) -> &mut Option<Ptr>;
+    fn behind_mut(&mut self) -> &mut Option<Ptr>;
 }
 
 #[derive(Debug)]

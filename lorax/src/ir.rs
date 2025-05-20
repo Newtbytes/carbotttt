@@ -1,6 +1,6 @@
 use std::{fmt::Display, sync::atomic};
 
-use crate::pool::{Pool, Ptr};
+use crate::pool::{LinkedNode, Pool, Ptr};
 
 #[derive(Debug, Clone, Copy)]
 pub struct Value {
@@ -34,6 +34,27 @@ pub struct Operation {
     pub blocks: Vec<Block>,
     pub result: OpResult,
     pub attr: Option<u32>,
+
+    pub behind: Option<Ptr>,
+    pub ahead: Option<Ptr>,
+}
+
+impl LinkedNode for Operation {
+    fn ahead(&self) -> Option<Ptr> {
+        self.ahead
+    }
+
+    fn behind(&self) -> Option<Ptr> {
+        self.behind
+    }
+
+    fn ahead_mut(&mut self) -> &mut Option<Ptr> {
+        &mut self.ahead
+    }
+
+    fn behind_mut(&mut self) -> &mut Option<Ptr> {
+        &mut self.behind
+    }
 }
 
 impl Operation {
@@ -72,6 +93,9 @@ macro_rules! def_op {
                 blocks: vec![$field],
                 result: None,
                 attr: None,
+
+                behind: None,
+                ahead: None,
             }
         }
     };
@@ -84,7 +108,10 @@ macro_rules! def_op {
                 operands: vec![$($field.into()),*],
                 blocks: Vec::new(),
                 result: def_op!(@ret $( $ret )?),
-                attr: None
+                attr: None,
+
+                behind: None,
+                ahead: None,
             }
         }
     };
@@ -98,6 +125,9 @@ macro_rules! def_op {
                 blocks: Vec::new(),
                 result: Some(Value::new(None)),
                 attr: Some(value),
+
+                behind: None,
+                ahead: None,
             }
         }
     };
