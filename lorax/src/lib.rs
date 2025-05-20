@@ -1,4 +1,4 @@
-pub mod builtin;
+pub mod attr;
 mod ir;
 mod link;
 mod pool;

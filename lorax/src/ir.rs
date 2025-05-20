@@ -1,5 +1,6 @@
 use std::{fmt::Display, sync::atomic};
 
+use crate::attr::{Attribute, AttributeMap};
 use crate::link::{LinkedList, LinkedNode};
 use crate::pool::{Pool, Ptr};
 
@@ -34,7 +35,8 @@ pub struct Operation {
     pub operands: Vec<Value>,
     pub blocks: Vec<Block>,
     pub result: OpResult,
-    pub attr: Option<u32>,
+
+    pub attributes: AttributeMap,
 
     pub behind: Option<Ptr>,
     pub ahead: Option<Ptr>,
@@ -81,6 +83,10 @@ impl Operation {
     pub fn walk_blocks_mut(&mut self) -> impl Iterator<Item = &mut Block> {
         self.blocks.iter_mut()
     }
+
+    pub fn add_attr(&mut self, key: String, attr: Attribute) {
+        self.attributes.insert(key, attr);
+    }
 }
 
 #[macro_export]
@@ -88,12 +94,14 @@ macro_rules! def_op {
     // Block-only operation (no operands, no result)
     ($dl:ident . $name:ident ($field:ident : Block)) => {
         pub fn $name($field: Block) -> Operation {
+            use ::lorax::attr::AttributeMap;
             Operation {
                 name: stringify!($dl . $name),
                 operands: Vec::new(),
                 blocks: vec![$field],
                 result: None,
-                attr: None,
+
+                attributes: AttributeMap::new(),
 
                 behind: None,
                 ahead: None,
@@ -104,12 +112,15 @@ macro_rules! def_op {
     // Operation with operands, optional result
     ($dl:ident . $name:ident ( $($field:ident : $ty:ty),* $(,)? ) $(-> $ret:ident)? ) => {
         pub fn $name($($field: $ty),*) -> Operation {
+            use ::lorax::attr::AttributeMap;
+
             Operation {
                 name: stringify!($dl . $name),
                 operands: vec![$($field.into()),*],
                 blocks: Vec::new(),
                 result: def_op!(@ret $( $ret )?),
-                attr: None,
+
+                attributes: AttributeMap::new(),
 
                 behind: None,
                 ahead: None,
@@ -120,18 +131,27 @@ macro_rules! def_op {
     // Operation with one attribute
     ($dl:ident . $name:ident (  ) { value: $ty:ty }) => {
         pub fn $name(value: $ty) -> Operation {
+            use ::lorax::attr::{AttributeMap, Attribute};
+
+            let mut attributes = AttributeMap::new();
+            attributes.insert("value".to_owned(), Attribute::Int(value));
+
             Operation {
                 name: stringify!($dl . $name),
                 operands: Vec::new(),
                 blocks: Vec::new(),
                 result: Some(Value::new(None)),
-                attr: Some(value),
+
+                attributes: attributes,
 
                 behind: None,
                 ahead: None,
             }
         }
     };
+
+    // Attribute map
+    (@attr) => {};
 
     // Result handling
     (@ret) => { Some(Value::new(None)) };
@@ -166,8 +186,8 @@ impl Display for Operation {
 
         fmt_delimited_list(&mut self.operands.iter(), f)?;
 
-        if let Some(val) = self.attr {
-            write!(f, "{{ value: {val} }}")?;
+        if !self.attributes.is_empty() {
+            write!(f, "{:?}", self.attributes)?;
         }
 
         if !self.blocks.is_empty() {
