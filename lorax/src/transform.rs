@@ -40,10 +40,7 @@ impl<'a> RewritingCtx<'a> {
         }
     }
 
-    pub fn get<'op>(&'a self) -> &'op Operation
-    where
-        'a: 'op,
-    {
+    pub fn get(&self) -> &Operation {
         self.pool.deref(self.op)
     }
 
@@ -66,10 +63,7 @@ impl<'a> RewritingCtx<'a> {
         &self.get().operands.as_slice()
     }
 
-    pub fn name<'b>(&'a self) -> &'b str
-    where
-        'a: 'b,
-    {
+    pub fn name(&self) -> &'static str {
         self.get().name
     }
 
