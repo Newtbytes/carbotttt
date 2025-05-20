@@ -217,11 +217,7 @@ mod tests {
             make_token(TokenKind::RBrace, "}"),
         ];
         let mut iter = tokens.into_iter().peekable();
-        let decl = Parser {
-            tokens: &mut iter,
-        }
-        .parse_function()
-        .unwrap();
+        let decl = Parser { tokens: &mut iter }.parse_function().unwrap();
         match decl {
             Decl::Function(name, body) => {
                 assert_eq!(name, "main");
