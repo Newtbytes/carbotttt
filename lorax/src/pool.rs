@@ -1,6 +1,18 @@
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, PartialOrd)]
 pub struct Ptr {
-    idx: usize,
+    pub(crate) idx: usize,
+}
+
+impl Ptr {
+    pub fn new(idx: usize) -> Self {
+        Self { idx }
+    }
+}
+
+impl From<usize> for Ptr {
+    fn from(idx: usize) -> Self {
+        Self { idx }
+    }
 }
 
 #[derive(Debug)]
@@ -8,7 +20,7 @@ pub struct Pool<T> {
     objs: Vec<T>,
 }
 
-impl<T> Pool<T> {
+impl<'a, T> Pool<T> {
     pub fn new() -> Self {
         Pool { objs: Vec::new() }
     }
@@ -31,13 +43,25 @@ impl<T> Pool<T> {
         }
     }
 
-    pub fn get<'a: 'b, 'b>(&'a self, ptr: &Ptr) -> &'b T {
+    pub fn deref(&self, ptr: Ptr) -> &T {
         self.objs.get(ptr.idx).expect("Deref of dangling ptr")
     }
 
-    pub fn get_mut(&mut self, ptr: &Ptr) -> &mut T {
+    pub fn deref_mut(&mut self, ptr: Ptr) -> &mut T {
         self.objs
             .get_mut(ptr.idx)
             .expect("Mut deref of dangling ptr")
+    }
+
+    pub fn iter(&self) -> impl Iterator<Item = &T> {
+        self.objs.iter()
+    }
+
+    pub fn iter_mut(&mut self) -> impl Iterator<Item = &mut T> {
+        self.objs.iter_mut()
+    }
+
+    pub fn len(&self) -> usize {
+        self.objs.len()
     }
 }

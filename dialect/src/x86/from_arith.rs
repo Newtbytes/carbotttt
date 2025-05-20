@@ -6,14 +6,15 @@ pub struct LowerBinop;
 impl<'block> RewriteRule<RewritingCtx<'block>> for LowerBinop {
     fn apply(&self, ctx: &mut RewritingCtx<'block>) {
         match (ctx.name(), ctx.operands(), ctx.result()) {
-            (name, &[src], &Some(dst)) => {
+            (name, &[src], Some(dst)) => {
+                let ptr = ctx.insert_behind(mov(src, dst));
+                let ptr = ctx.deref(ptr).get_result();
+
                 ctx.replace(match name {
-                    "arith.negate" => neg(dst.into()),
-                    "arith.complement" => not(dst.into()),
+                    "arith.negate" => neg(ptr),
+                    "arith.complement" => not(ptr),
                     _ => return (),
                 });
-
-                ctx.insert_behind(mov(src, dst.into()));
             }
             _ => (),
         }
