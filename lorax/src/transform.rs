@@ -51,6 +51,10 @@ impl<'a> RewritingCtx<'a> {
         self.block.pool.deref_mut(ptr)
     }
 
+    pub fn result_of(&mut self, ptr: Ptr) -> Value {
+        self.deref(ptr).get_result()
+    }
+
     pub fn insert_behind(&mut self, op: Operation) -> Ptr {
         self.block.insert_behind(self.op, op)
     }
@@ -71,7 +75,7 @@ impl<'a> RewritingCtx<'a> {
     }
 
     pub fn replace(&mut self, new: Operation) {
-        *(self.get_mut()) = new;
+        self.block.replace(self.op, new);
     }
 
     pub fn done(&self) -> bool {

@@ -156,7 +156,7 @@ macro_rules! def_op {
     // Result handling
     (@ret) => { Some(Value::new(None)) };
     (@ret None) => { None };
-    (@ret Value) => { Some(Value::new()) };
+    (@ret Value) => { Some(Value::new(None)) };
     (@ret $ret:ident) => { Some(($ret).into()) };
 }
 
