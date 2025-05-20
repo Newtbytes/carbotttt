@@ -1,6 +1,7 @@
 use std::{fmt::Display, sync::atomic};
 
-use crate::pool::{LinkedNode, Pool, Ptr};
+use crate::link::{LinkedList, LinkedNode};
+use crate::pool::{Pool, Ptr};
 
 #[derive(Debug, Clone, Copy)]
 pub struct Value {
@@ -185,6 +186,9 @@ impl Display for Operation {
 pub struct Block {
     pub(crate) id: usize,
     pub pool: Pool<Operation>,
+
+    head: Option<Ptr>,
+    tail: Option<Ptr>,
 }
 
 impl Block {
@@ -197,6 +201,9 @@ impl Block {
         Self {
             id: Self::unique_id(),
             pool: Pool::new(),
+
+            head: None,
+            tail: None,
         }
     }
 
@@ -217,7 +224,7 @@ impl Block {
     }
 
     pub fn push(&mut self, op: Operation) -> Ptr {
-        self.pool.alloc(op)
+        LinkedList::push(self, op)
     }
 
     pub fn len(&self) -> usize {
@@ -246,12 +253,38 @@ impl Block {
     }
 }
 
+impl LinkedList<Operation> for Block {
+    fn head(&self) -> &Option<Ptr> {
+        &self.head
+    }
+
+    fn tail(&self) -> &Option<Ptr> {
+        &self.tail
+    }
+
+    fn head_mut(&mut self) -> &mut Option<Ptr> {
+        &mut self.head
+    }
+
+    fn tail_mut(&mut self) -> &mut Option<Ptr> {
+        &mut self.tail
+    }
+
+    fn pool(&self) -> &Pool<Operation> {
+        &self.pool
+    }
+
+    fn pool_mut(&mut self) -> &mut Pool<Operation> {
+        &mut self.pool
+    }
+}
+
 impl Display for Block {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         writeln!(f, ".bb{}:", self.id)?;
 
-        for ptr in self.linearize() {
-            writeln!(f, "    {}", self.get(ptr))?;
+        for op in self.iter() {
+            writeln!(f, "    {}", op)?;
         }
 
         Ok(())

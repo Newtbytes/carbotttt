@@ -15,13 +15,6 @@ impl From<usize> for Ptr {
     }
 }
 
-pub trait LinkedNode {
-    fn ahead(&self) -> Option<Ptr>;
-    fn behind(&self) -> Option<Ptr>;
-    fn ahead_mut(&mut self) -> &mut Option<Ptr>;
-    fn behind_mut(&mut self) -> &mut Option<Ptr>;
-}
-
 #[derive(Debug)]
 pub struct Pool<T> {
     objs: Vec<T>,

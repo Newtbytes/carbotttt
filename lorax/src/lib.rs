@@ -1,5 +1,6 @@
 pub mod builtin;
 mod ir;
+mod link;
 mod pool;
 mod rewrite;
 mod transform;
