@@ -1,4 +1,4 @@
-use lorax::{RewriteRule, RewritingCtx, Value};
+use lorax::{RewriteRule, RewritingCtx};
 
 use super::ops::*;
 
