@@ -1,69 +1,74 @@
-use crate::{Block, Operation, RewriteRule, RewriteRuleSet, Value, walk_blocks};
+use crate::{
+    Block, Operation, RewriteRule, RewriteRuleSet, Value, link::LinkedList, pool::Ptr, walk_blocks,
+};
 
 pub struct RewritingCtx<'a> {
     block: &'a mut Block,
-    op_idx: usize,
+    op: Ptr,
 }
 
 impl<'a> RewritingCtx<'a> {
-    pub fn new(block: &'a mut Block) -> Self {
-        Self { block, op_idx: 0 }
+    pub fn new(block: &'a mut Block, op: Ptr) -> Self {
+        Self { block, op }
     }
 
-    pub fn replace_block(&mut self, block: &'a mut Block) {
-        self.block = block;
+    pub fn from_start(block: &'a mut Block) -> Self {
+        Self::new(block, Ptr::new(0))
+    }
 
-        // reset the op_idx to 0
-        self.op_idx = 0;
+    /// Allocate an operation in the pool, filling in the op's result with a def
+    pub fn alloc_op(&mut self, op: Operation) -> &Operation {
+        let ptr = self.block.pool.alloc(op);
+
+        if let Some(val) = &mut self.deref_mut(ptr).result {
+            if let None = val.def {
+                val.def = Some(ptr);
+            }
+        }
+
+        self.deref(ptr)
     }
 
     fn advance(&mut self) {
-        if self.op_idx < self.block.len() {
-            self.op_idx += 1;
+        if self.op < self.block.pool.len().into() {
+            self.op.idx += 1;
         }
     }
 
     pub fn get(&self) -> &Operation {
-        self.block
-            .body
-            .get(self.op_idx)
-            .expect("op_idx should always point to an existing operation")
+        self.block.pool.deref(self.op)
     }
 
     pub fn get_mut(&mut self) -> &mut Operation {
-        self.block
-            .body
-            .get_mut(self.op_idx)
-            .expect("op_idx should always point to an existing operation")
+        self.block.pool.deref_mut(self.op)
     }
 
-    pub fn operands(&self) -> &[Value] {
-        self.get().operands.as_slice()
+    pub fn deref(&self, ptr: Ptr) -> &Operation {
+        self.block.pool.deref(ptr)
     }
 
-    pub fn name(&self) -> &str {
-        &self.get().name
+    pub fn deref_mut(&mut self, ptr: Ptr) -> &mut Operation {
+        self.block.pool.deref_mut(ptr)
     }
 
-    pub fn prev(&self) -> Option<&Operation> {
-        self.block.body.get(self.op_idx - 1)
+    pub fn insert_behind(&mut self, op: Operation) -> Ptr {
+        self.block.insert_behind(self.op, op)
     }
 
-    pub fn result(&self) -> &Option<Value> {
-        &self.get().result
+    pub fn operands<'b>(&'a self) -> &'b [Value]
+    where
+        'a: 'b,
+    {
+        &self.get().operands.as_slice()
     }
 
-    pub fn insert_behind(&mut self, op: Operation) -> Option<Value> {
-        self.block.insert(self.op_idx, op);
 
-        // adjust index so we continue to point to the correct op
-        self.advance();
-
-        self.prev().map(|op| op.result).flatten()
+    pub fn name(&self) -> &'static str {
+        self.get().name
     }
 
-    pub fn insert_ahead(&mut self, op: Operation) {
-        self.block.insert(self.op_idx + 1, op);
+    pub fn result(&self) -> Option<Value> {
+        self.get().result
     }
 
     pub fn replace(&mut self, new: Operation) {
@@ -71,19 +76,19 @@ impl<'a> RewritingCtx<'a> {
     }
 
     pub fn done(&self) -> bool {
-        self.op_idx >= self.block.len()
+        self.op.idx >= self.block.pool.len()
     }
 
     pub fn release(self) {}
 }
 
-pub fn rewrite_blocks<'a, 'b>(block: &'a mut Block, pass: RewriteRuleSet<RewritingCtx<'b>>)
+pub fn rewrite_ops<'a, 'b>(block: &'a mut Block, pass: RewriteRuleSet<RewritingCtx<'b>>)
 where
     Block: 'a,
     'a: 'b,
 {
     for bl in walk_blocks(block) {
-        let mut ctx = RewritingCtx::new(bl);
+        let mut ctx = RewritingCtx::from_start(bl);
 
         while !ctx.done() {
             pass.apply(&mut ctx);

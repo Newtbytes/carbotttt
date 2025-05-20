@@ -9,7 +9,7 @@ use crate::error::CompilerError;
 use crate::parser;
 use crate::parser::ast;
 use dialect::x86;
-use lorax::rewrite_blocks;
+use lorax::rewrite_ops;
 
 const CC: &str = "gcc";
 
@@ -201,7 +201,7 @@ pub fn run_compiler(cli: Cli) -> Result<(), CompilerError> {
 
     // TODO: put this somewhere else
 
-    rewrite_blocks(ir, x86::rules());
+    rewrite_ops(ir, x86::rules());
 
     println!("{}", ir);
 
