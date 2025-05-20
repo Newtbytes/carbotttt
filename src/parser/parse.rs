@@ -116,6 +116,7 @@ pub fn parse<T: Iterator<Item = Token>>(tokens: &mut T) -> ParseResult<Program> 
 mod tests {
     use super::*;
     use crate::parser::ast::{Token, TokenKind};
+    use proptest::prelude::*;
 
     fn make_token(kind: TokenKind, value: &str) -> Token {
         Token {
@@ -125,77 +126,79 @@ mod tests {
         }
     }
 
-    #[test]
-    fn test_parse_constant_expr() {
-        let tokens = vec![make_token(TokenKind::Constant, "42")];
-        let mut iter = tokens.into_iter();
-        let expr = Parser {
-            tokens: &mut iter.peekable(),
+    proptest! {
+        #[test]
+        fn test_parse_constant_expr(val in u32::MIN..u32::MAX) {
+            let tokens = vec![make_token(TokenKind::Constant, &val.to_string())];
+            let mut iter = tokens.into_iter().peekable();
+            let expr = Parser {
+                tokens: &mut iter,
+            }
+            .parse_expr()
+            .unwrap();
+            match expr {
+                Expr::Constant(v) => prop_assert_eq!(v, val),
+                _ => prop_assert!(false, "Expected constant expr"),
+            }
         }
-        .parse_expr()
-        .unwrap();
-        match expr {
-            Expr::Constant(val) => assert_eq!(val, 42),
-            _ => panic!("Expected constant expr"),
-        }
-    }
 
-    #[test]
-    fn test_parse_unary_expr() {
-        let tokens = vec![
-            make_token(TokenKind::Negate, "-"),
-            make_token(TokenKind::Constant, "5"),
-        ];
-        let mut iter = tokens.into_iter();
-        let expr = Parser {
-            tokens: &mut iter.peekable(),
+        #[test]
+        fn test_parse_unary_expr(val in u32::MIN..u32::MAX) {
+            let tokens = vec![
+                make_token(TokenKind::Negate, "-"),
+                make_token(TokenKind::Constant, &val.to_string()),
+            ];
+            let mut iter = tokens.into_iter().peekable();
+            let expr = Parser {
+                tokens: &mut iter,
+            }
+            .parse_expr()
+            .unwrap();
+            match expr {
+                Expr::Unary(UnaryOp::Negate, inner) => match *inner {
+                    Expr::Constant(v) => prop_assert_eq!(v, val),
+                    _ => prop_assert!(false, "Expected constant inside unary"),
+                },
+                _ => prop_assert!(false, "Expected unary expr"),
+            }
         }
-        .parse_expr()
-        .unwrap();
-        match expr {
-            Expr::Unary(UnaryOp::Negate, inner) => match *inner {
-                Expr::Constant(val) => assert_eq!(val, 5),
-                _ => panic!("Expected constant inside unary"),
-            },
-            _ => panic!("Expected unary expr"),
-        }
-    }
 
-    #[test]
-    fn test_parse_paren_expr() {
-        let tokens = vec![
-            make_token(TokenKind::LParen, "("),
-            make_token(TokenKind::Constant, "7"),
-            make_token(TokenKind::RParen, ")"),
-        ];
-        let mut iter = tokens.into_iter();
-        let expr = Parser {
-            tokens: &mut iter.peekable(),
+        #[test]
+        fn test_parse_paren_expr(val in u32::MIN..u32::MAX) {
+            let tokens = vec![
+                make_token(TokenKind::LParen, "("),
+                make_token(TokenKind::Constant, &val.to_string()),
+                make_token(TokenKind::RParen, ")"),
+            ];
+            let mut iter = tokens.into_iter().peekable();
+            let expr = Parser {
+                tokens: &mut iter,
+            }
+            .parse_expr()
+            .unwrap();
+            match expr {
+                Expr::Constant(v) => prop_assert_eq!(v, val),
+                _ => prop_assert!(false, "Expected constant expr in parens"),
+            }
         }
-        .parse_expr()
-        .unwrap();
-        match expr {
-            Expr::Constant(val) => assert_eq!(val, 7),
-            _ => panic!("Expected constant expr in parens"),
-        }
-    }
 
-    #[test]
-    fn test_parse_statement() {
-        let tokens = vec![
-            make_token(TokenKind::Return, "return"),
-            make_token(TokenKind::Constant, "1"),
-            make_token(TokenKind::Semicolon, ";"),
-        ];
-        let mut iter = tokens.into_iter();
-        let stmt = Parser {
-            tokens: &mut iter.peekable(),
-        }
-        .parse_statement()
-        .unwrap();
-        match stmt {
-            Stmt::Return(Expr::Constant(val)) => assert_eq!(val, 1),
-            _ => panic!("Expected return statement with constant"),
+        #[test]
+        fn test_parse_statement(val in u32::MIN..u32::MAX) {
+            let tokens = vec![
+                make_token(TokenKind::Return, "return"),
+                make_token(TokenKind::Constant, &val.to_string()),
+                make_token(TokenKind::Semicolon, ";"),
+            ];
+            let mut iter = tokens.into_iter().peekable();
+            let stmt = Parser {
+                tokens: &mut iter,
+            }
+            .parse_statement()
+            .unwrap();
+            match stmt {
+                Stmt::Return(Expr::Constant(v)) => prop_assert_eq!(v, val),
+                _ => prop_assert!(false, "Expected return statement with constant"),
+            }
         }
     }
 
@@ -213,9 +216,9 @@ mod tests {
             make_token(TokenKind::Semicolon, ";"),
             make_token(TokenKind::RBrace, "}"),
         ];
-        let mut iter = tokens.into_iter();
+        let mut iter = tokens.into_iter().peekable();
         let decl = Parser {
-            tokens: &mut iter.peekable(),
+            tokens: &mut iter,
         }
         .parse_function()
         .unwrap();
